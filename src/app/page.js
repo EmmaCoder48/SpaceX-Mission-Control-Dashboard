@@ -1,5 +1,6 @@
 import SpaceXMissionControl from "@/components/spacex/SpaceXMissionControl";
 import NextMissionHero from "@/components/spacex/NextLaunchHero";
+export const dynamic = "force-dynamic";
 
 /**
  * Vista principal de la aplicación (Home Page).

@@ -1,115 +1,108 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getLaunches } from "@/app/services/SpacexData";
-import MissionCard from "./MissionCard";
+import Countdown from "../CountDown";
 
 /**
- * Componente SpaceXMissionControl
- * Gestión centralizada del historial de lanzamientos.
- * * Este componente orquestra la recuperación de datos masivos y aplica
- * filtros reactivos sobre el estado de las misiones (Éxito/Fallo).
+ * Componente NextMissionHero
+ * * Este componente actúa como la sección principal (Hero) de la aplicación.
+ * Implementa una arquitectura 'Above the Fold' utilizando efectos de posicionamiento
+ * sticky y visualización de telemetría en tiempo real (Countdown).
  */
-export default function SpaceXMissionControl() {
-  // Estados independientes para segmentar la data según su naturaleza (Past/Upcoming)
-  const [pastMissions, setPastMissions] = useState([]);
-  const [upcomingMissions, setUpcomingMissions] = useState([]);
-  const [filter, setFilter] = useState("all");
+export default function NextMissionHero() {
+  // Estado para gestionar la data de la misión y el ciclo de vida de la petición.
+  const [nextLaunch, setNextLaunch] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    /**
-     * Optimización de concurrencia: Utilizo Promise.all para disparar
-     * ambas peticiones HTTP en paralelo, reduciendo el tiempo total
-     * de carga (TTFB) de la sección de control.
-     */
-    const fetchAllData = async () => {
-      setLoading(true);
-      try {
-        const [past, upcoming] = await Promise.all([
-          getLaunches("past"),
-          getLaunches("upcoming"),
-        ]);
+    const fetchNext = async () => {
+      // Consumo el servicio de lanzamientos de forma asíncrona.
+      const allLaunches = await getLaunches("");
 
-        // Invierto el array para mostrar los lanzamientos más recientes primero
-        setPastMissions(past.reverse());
-        setUpcomingMissions(upcoming);
-      } catch (error) {
-        console.error(
-          "Error crítico en la sincronización de telemetría:",
-          error
+      if (allLaunches && allLaunches.length > 0) {
+        const now = new Date().getTime();
+
+        /**
+         * Lógica de filtrado: Busco el primer lanzamiento programado para el futuro
+         * (con un margen de seguridad de 24 horas) para asegurar que el contador
+         * proporcione una experiencia de usuario coherente.
+         */
+        const realNext = allLaunches.find(
+          (m) => new Date(m.date_utc).getTime() > now + 86400000
         );
-      } finally {
-        setLoading(false);
+
+        if (realNext) {
+          setNextLaunch(realNext);
+        } else {
+          /**
+           * Mecanismo de Fallback: En caso de que la API no retorne misiones futuras,
+           * inyecto un 'Mock Data' para evitar estados vacíos y mantener la integridad visual.
+           */
+          setNextLaunch({
+            name: "Starship Flight 7 (Estimated)",
+            date_utc: "2026-06-20T18:00:00Z",
+            launchpad: "VCSC Starbase, TX",
+          });
+        }
       }
+      setLoading(false);
     };
-    fetchAllData();
+    fetchNext();
   }, []);
 
-  /**
-   * Lógica de Filtrado Reactivo:
-   * Se computa en cada render para mantener la UI sincronizada con el estado del filtro.
-   */
-  const filteredMissions = pastMissions.filter((m) => {
-    if (filter === "success") return m.success === true;
-    if (filter === "failed") return m.success === false;
-    return true;
-  });
-
-  // Estado de carga con semántica de terminal de control
+  // UI de carga con estética 'Command Line Interface' (CLI) para reforzar la temática espacial.
   if (loading)
     return (
-      <div className="p-10 text-orange-500 animate-pulse font-mono bg-black">
-        SYSTEM_DIAGNOSTIC: LOADING_MISSION_LOGS...
+      <div className="h-screen flex items-center justify-center bg-black text-zinc-700 font-mono text-xs uppercase tracking-widest animate-pulse">
+        [ HANDSHAKE_WITH_STARLINK_CONSTELLATION... ]
       </div>
     );
 
+  if (!nextLaunch) return null;
+
   return (
-    <div className="min-h-screen bg-black text-white font-mono p-6">
-      {/* SECCIÓN: HISTORIAL CON FILTROS */}
-      <section className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-2 h-2 bg-orange-600 rounded-full animate-ping" />
-            <h2 className="text-orange-400 text-sm font-bold tracking-[0.3em] uppercase">
-              Mission_Log_History
-            </h2>
+    /**
+     * Contenedor Principal: Utilizo una altura de 110vh para habilitar un margen de scroll
+     * que active el efecto de profundidad (Sticky Parallax).
+     */
+    <section className="relative h-[110vh] w-full bg-black">
+      {/* Contenedor Sticky: Fijo la escena en el viewport mientras el resto del contenido
+        fluye por encima, creando una transición de capas moderna.
+      */}
+      <div className="sticky top-0 h-screen w-full flex flex-col items-center justify-center overflow-hidden">
+        {/* Background Layer: Optimización visual mediante overlays de gradiente y opacidad */}
+        <div
+          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/images/starship.jpg')" }}
+        />
+
+        {/* Capas de Contraste: Garantizan la legibilidad del texto sobre imágenes complejas */}
+        <div className="absolute inset-0 z-10 bg-black/70" />
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black via-transparent to-black" />
+
+        {/* Content Layer: Implementación de tipografía monoespaciada para un look técnico/serio */}
+        <div className="relative z-20 flex flex-col items-center text-center px-6 w-full max-w-5xl">
+          {/* Título: Utilizo 'break-words' para asegurar un renderizado fluido en dispositivos móviles */}
+          <h1 className="text-3xl sm:text-4xl md:text-7xl font-mono text-white uppercase mb-4 leading-tight break-words w-full">
+            {nextLaunch.name}
+          </h1>
+
+          {/* Componente Countdown: Escalado dinámico según el breakpoint de pantalla */}
+          <div className="scale-100 sm:scale-125 md:scale-150 py-10">
+            <Countdown targetDate={nextLaunch.date_utc} />
           </div>
 
-          {/* CONTROL DE FILTROS: Interfaz técnica de botones de estado */}
-          <nav className="flex bg-zinc-900/50 p-1 border border-zinc-800 rounded-sm">
-            {["all", "success", "failed"].map((t) => (
-              <button
-                key={t}
-                onClick={() => setFilter(t)}
-                className={`px-6 py-1 text-[9px] uppercase transition-all duration-300 ${
-                  filter === t
-                    ? "bg-orange-600 text-black font-bold"
-                    : "text-zinc-500 hover:text-orange-300 hover:bg-zinc-800"
-                }`}>
-                {t}
-              </button>
-            ))}
-          </nav>
+          {/* Footer del Hero: Metadatos geográficos con tipografía reducida para jerarquía visual */}
+          <div className="mt-6 opacity-40">
+            <p className="text-[9px] font-mono uppercase tracking-widest text-zinc-400">
+              Site:{" "}
+              {nextLaunch.launchpad === "5e9e4502f509094188566f88"
+                ? "KSC LC-39A"
+                : "Starbase TX"}
+            </p>
+          </div>
         </div>
-
-        {/* FEED DE MISIONES: 
-            Limito el renderizado inicial (slice) para optimizar el DOM 
-            y asegurar un scroll fluido.
-        */}
-        <div className="flex flex-col gap-3">
-          {filteredMissions.length > 0 ? (
-            filteredMissions
-              .slice(0, 15)
-              .map((m) => (
-                <MissionCard key={m.id} mission={m} isUpcoming={false} />
-              ))
-          ) : (
-            <div className="py-20 text-center text-zinc-700 text-xs border border-dashed border-zinc-900">
-              NO_DATA_MATCHES_CURRENT_FILTER_CRITERIA
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
+      </div>
+    </section>
   );
 }
