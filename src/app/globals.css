@@ -1,10 +1,20 @@
 @import "tailwindcss";
 
+/**
+ * Defino las variables de estado global del sistema.
+ * Utilizo tokens semánticos (--background/--foreground) para facilitar 
+ * el mantenimiento de la paleta de colores en un solo punto.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/**
+ * Configuro el sistema de diseño (Design System) con Tailwind CSS.
+ * Mapeo mis variables nativas de CSS a los tokens del tema de Tailwind
+ * para asegurar consistencia visual en todo el proyecto.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -12,15 +22,27 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/**
+ * Implemento el soporte para 'Dark Mode' basado en la preferencia del sistema.
+ * Esto garantiza una experiencia de usuario (UX) accesible y moderna
+ * adaptándose automáticamente a la configuración del SO del usuario.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #000000; /* Lo ajusté a negro puro para esa vibra SpaceX */
     --foreground: #ededed;
   }
 }
 
+/**
+ * Reseteo de estilos globales del documento.
+ * Aplico las variables dinámicas al body y defino el stack de fuentes
+ * de respaldo para asegurar la legibilidad en diferentes navegadores.
+ */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; /* Mejora la renderización de fuentes en macOS/iOS */
+  -moz-osx-font-smoothing: grayscale;
 }
