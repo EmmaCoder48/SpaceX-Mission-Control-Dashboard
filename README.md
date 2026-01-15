@@ -1,4 +1,4 @@
-# 🚀 SpaceX Mission Control Dashboard
+# 🚀 SpaceX Launches
 
 Un panel de control de telemetría en tiempo real desarrollado con **Next.js 15** y **Tailwind CSS**, diseñado para monitorear los próximos lanzamientos de SpaceX y auditar el historial de misiones utilizando la API oficial de SpaceX (Rockets, Launches, and Landpads).
 
